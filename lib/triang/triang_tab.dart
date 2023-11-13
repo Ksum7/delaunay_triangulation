@@ -1,20 +1,21 @@
-import 'package:bezier_curves/midpoint/midpoint_cubit/midpoint_cubit.dart';
-import 'package:bezier_curves/midpoint/midpoint_paint.dart';
+import 'dart:ffi';
+
+import 'package:dt/triang/triang_cubit/triang_cubit.dart';
+import 'package:dt/triang/triang_paint.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:math';
 
-class Tab extends StatelessWidget {
-  const Tab({Key? key}) : super(key: key);
+class TriangTab extends StatelessWidget {
+  const TriangTab({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      return BlocProvider<MidpointCubit>(
-        create: (context) => MidpointCubit(),
-        child: BlocBuilder<MidpointCubit, MidpointState>(
-            builder: (context, state) {
-          return state is MidpointLoading
+      return BlocProvider<TriangCubit>(
+        create: (context) => TriangCubit(),
+        child: BlocBuilder<TriangCubit, TriangState>(builder: (context, state) {
+          return state is TriangLoading
               ? const Center(
                   child: SizedBox(
                       height: 30,
@@ -24,25 +25,25 @@ class Tab extends StatelessWidget {
               : Column(
                   children: [
                     _DrawSettings(
-                      startOffset: Offset(0, constraints.maxHeight - 100),
-                      endOffset: Offset(
-                          constraints.maxWidth, constraints.maxHeight - 100),
-                      onDrawPressed: (
-                          {required Offset endOffset,
-                          required double minStep,
-                          required double roughness,
-                          required Offset startOffset,
-                          int? step}) {
-                        BlocProvider.of<MidpointCubit>(context).draw(
-                            startOffset, endOffset, roughness, minStep,
-                            step: step);
+                      createPoints: (int pCount) {
+                        BlocProvider.of<TriangCubit>(context).drawPoints(
+                            (100, constraints.maxWidth - 100),
+                            (100, constraints.maxHeight - 100),
+                            pCount);
+                      },
+                      triangulate: () {
+                        BlocProvider.of<TriangCubit>(context).drawLines();
                       },
                     ),
                     Expanded(
                       child: ClipRRect(
                         child: CustomPaint(
-                          foregroundPainter: MidpointPainter(
-                              points: (state as MidpointDraw).points),
+                          foregroundPainter: TriangPainter(
+                            points:
+                                state is TriangDrawPoints ? state.points : null,
+                            lines:
+                                state is TriangDrawLines ? state.lines : null,
+                          ),
                           child: Container(
                             width: double.infinity,
                             height: double.infinity,
@@ -60,110 +61,38 @@ class Tab extends StatelessWidget {
 }
 
 class _DrawSettings extends StatefulWidget {
-  final void Function({
-    required Offset startOffset,
-    required Offset endOffset,
-    required double roughness,
-    required double minStep,
-    int? step,
-  }) onDrawPressed;
-  final Offset startOffset;
-  final Offset endOffset;
+  final Function createPoints;
+  final Function triangulate;
 
-  const _DrawSettings(
-      {required this.onDrawPressed,
-      required this.startOffset,
-      required this.endOffset});
+  const _DrawSettings({required this.createPoints, required this.triangulate});
 
   @override
   _DrawSettingsState createState() => _DrawSettingsState();
 }
 
 class _DrawSettingsState extends State<_DrawSettings> {
-  bool isDrawed = false;
-  double _step = 0;
-  double _roughness = 1;
-  double _min = 1;
-  var minController = TextEditingController();
-  var roughController = TextEditingController();
-
-  num findSteps() {
-    return pow(
-            2,
-            (log((widget.endOffset.dx - widget.startOffset.dx) / _min) / log(2))
-                .floor()) -
-        1;
-  }
+  bool isPointsDrawed = false;
+  int _pCounter = 0;
+  var counterController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        SizedBox(
-          height: 100,
-          width: 300,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Step: ${_step.round()}'),
-              Slider(
-                value: _step,
-                onChanged: (value) {
-                  _step = value;
-                  if (isDrawed) {
-                    widget.onDrawPressed(
-                        startOffset: widget.startOffset,
-                        endOffset: widget.endOffset,
-                        roughness: _roughness,
-                        minStep: _min,
-                        step: _step.round());
-                  }
-                },
-                min: 0,
-                max: findSteps().toDouble(),
-                divisions: findSteps().toInt(),
-              ),
-            ],
-          ),
-        ),
         const SizedBox(
           width: 50,
         ),
-        SizedBox(
-          width: 100,
-          height: 100,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Roughness:'),
-              SizedBox(
-                child: TextField(
-                  controller: roughController..text = _roughness.toString(),
-                  onChanged: (value) {
-                    _roughness = double.tryParse(value) ?? 0.0;
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
+        const Text('Количество точек:'),
         const SizedBox(
-          width: 50,
+          width: 10,
         ),
         SizedBox(
-          width: 100,
-          height: 100,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Min Step Len:'),
-              TextField(
-                controller: minController..text = _min.toString(),
-                onChanged: (value) {
-                  _min = double.tryParse(value) ?? 0.0;
-                },
-              ),
-            ],
+          width: 30,
+          child: TextField(
+            controller: counterController..text = _pCounter.toString(),
+            onChanged: (value) {
+              _pCounter = int.tryParse(value) ?? 0;
+            },
           ),
         ),
         const SizedBox(
@@ -171,16 +100,22 @@ class _DrawSettingsState extends State<_DrawSettings> {
         ),
         ElevatedButton(
           onPressed: () {
-            isDrawed = true;
-            _step = findSteps().toDouble();
-            widget.onDrawPressed(
-                startOffset: widget.startOffset,
-                endOffset: widget.endOffset,
-                roughness: _roughness,
-                minStep: _min);
+            isPointsDrawed = true;
+            widget.createPoints(_pCounter);
           },
-          child: const Text('Draw'),
+          child: const Text('Создать точки'),
         ),
+        const SizedBox(
+          width: 50,
+        ),
+        isPointsDrawed
+            ? ElevatedButton(
+                onPressed: () {
+                  widget.triangulate();
+                },
+                child: const Text('Триангулировать'),
+              )
+            : const SizedBox.shrink()
       ],
     );
   }

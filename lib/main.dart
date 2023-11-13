@@ -1,7 +1,4 @@
-import 'package:bezier_curves/bezier/bezier_bloc/bezier_bloc.dart';
-import 'package:bezier_curves/bezier/bezier_paint.dart';
-import 'package:bezier_curves/bezier/bezier_tab.dart';
-import 'package:bezier_curves/midpoint/midpoint_tab.dart';
+import 'package:dt/triang/triang_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -30,6 +27,6 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Tab();
+    return const TriangTab();
   }
 }

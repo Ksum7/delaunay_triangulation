@@ -1,16 +1,22 @@
-part of 'midpoint_cubit.dart';
+part of 'triang_cubit.dart';
 
 @immutable
-sealed class MidpointState {
-  const MidpointState();
+sealed class TriangState {
+  const TriangState();
 }
 
-final class MidpointDraw extends MidpointState {
-  const MidpointDraw({required this.points});
+final class TriangDrawPoints extends TriangState {
+  const TriangDrawPoints({required this.points});
 
   final List<Offset> points;
 }
 
-final class MidpointLoading extends MidpointState {
-  const MidpointLoading();
+final class TriangDrawLines extends TriangState {
+  const TriangDrawLines({required this.lines});
+
+  final List<(Offset, Offset)> lines;
+}
+
+final class TriangLoading extends TriangState {
+  const TriangLoading();
 }
