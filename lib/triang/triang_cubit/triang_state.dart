@@ -12,9 +12,10 @@ final class TriangDrawPoints extends TriangState {
 }
 
 final class TriangDrawLines extends TriangState {
-  const TriangDrawLines({required this.lines});
+  const TriangDrawLines({required this.lines, required this.points});
 
   final List<(Offset, Offset)> lines;
+  final List<Offset> points;
 }
 
 final class TriangLoading extends TriangState {

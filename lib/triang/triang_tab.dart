@@ -26,7 +26,7 @@ class TriangTab extends StatelessWidget {
                   children: [
                     _DrawSettings(
                       createPoints: (int pCount) {
-                        BlocProvider.of<TriangCubit>(context).drawPoints(
+                        BlocProvider.of<TriangCubit>(context).addPoints(
                             (100, constraints.maxWidth - 100),
                             (100, constraints.maxHeight - 100),
                             pCount);
@@ -34,20 +34,30 @@ class TriangTab extends StatelessWidget {
                       triangulate: () {
                         BlocProvider.of<TriangCubit>(context).drawLines();
                       },
+                      clearPoints: () {
+                        BlocProvider.of<TriangCubit>(context).clearPoints();
+                      },
                     ),
                     Expanded(
                       child: ClipRRect(
-                        child: CustomPaint(
-                          foregroundPainter: TriangPainter(
-                            points:
-                                state is TriangDrawPoints ? state.points : null,
-                            lines:
-                                state is TriangDrawLines ? state.lines : null,
-                          ),
-                          child: Container(
-                            width: double.infinity,
-                            height: double.infinity,
-                            color: Colors.white,
+                        child: GestureDetector(
+                          onPanDown: (details) {
+                            BlocProvider.of<TriangCubit>(context)
+                                .addPoint(details.localPosition);
+                          },
+                          child: CustomPaint(
+                            foregroundPainter: TriangPainter(
+                              points: state is TriangDrawPoints
+                                  ? state.points
+                                  : (state as TriangDrawLines).points,
+                              lines:
+                                  state is TriangDrawLines ? state.lines : null,
+                            ),
+                            child: Container(
+                              width: double.infinity,
+                              height: double.infinity,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
@@ -62,16 +72,19 @@ class TriangTab extends StatelessWidget {
 
 class _DrawSettings extends StatefulWidget {
   final Function createPoints;
+  final Function clearPoints;
   final Function triangulate;
 
-  const _DrawSettings({required this.createPoints, required this.triangulate});
+  const _DrawSettings(
+      {required this.createPoints,
+      required this.clearPoints,
+      required this.triangulate});
 
   @override
   _DrawSettingsState createState() => _DrawSettingsState();
 }
 
 class _DrawSettingsState extends State<_DrawSettings> {
-  bool isPointsDrawed = false;
   int _pCounter = 0;
   var counterController = TextEditingController();
 
@@ -100,7 +113,6 @@ class _DrawSettingsState extends State<_DrawSettings> {
         ),
         ElevatedButton(
           onPressed: () {
-            isPointsDrawed = true;
             widget.createPoints(_pCounter);
           },
           child: const Text('Создать точки'),
@@ -108,14 +120,21 @@ class _DrawSettingsState extends State<_DrawSettings> {
         const SizedBox(
           width: 50,
         ),
-        isPointsDrawed
-            ? ElevatedButton(
-                onPressed: () {
-                  widget.triangulate();
-                },
-                child: const Text('Триангулировать'),
-              )
-            : const SizedBox.shrink()
+        ElevatedButton(
+          onPressed: () {
+            widget.clearPoints();
+          },
+          child: const Text('Очистить'),
+        ),
+        const SizedBox(
+          width: 50,
+        ),
+        ElevatedButton(
+          onPressed: () {
+            widget.triangulate();
+          },
+          child: const Text('Триангулировать'),
+        ),
       ],
     );
   }
